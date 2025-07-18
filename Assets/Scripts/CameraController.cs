@@ -23,7 +23,7 @@ public class CameraController : MonoBehaviour
     {
         if (target != null)
         {
-            Debug.Log("Target Position: " + target.position);
+            // Debug.Log("Target Position: " + target.position);
 
             Vector3 desiredPosition = target.position + offset;
             
