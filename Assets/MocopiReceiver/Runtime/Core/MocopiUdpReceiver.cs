@@ -15,11 +15,13 @@ namespace Mocopi.Receiver.Core
     /// <summary>
     /// Class receiving by UDP from the sensor for handling
     /// </summary>
-    public sealed class MocopiUdpReceiver
+    public sealed class MocopiUdpReceiver 
     {
         #region --Fields--
         /// <summary>
         /// Delegate type variables for bone initialization
+        /// メソッドの型定義でSKDFを押すと呼び出されるイベント
+        /// 外部クラスがこのイベントを購読して、ボーンの初期化を行う
         /// </summary>
         public ReceiveSkeletonDefinitionEvent OnReceiveSkeletonDefinition = new ReceiveSkeletonDefinitionEvent(
             (
@@ -59,11 +61,14 @@ namespace Mocopi.Receiver.Core
 
         /// <summary>
         /// Object for exclusive access control
+        /// このクラスのメソッドを排他制御するためのオブジェクト
+        /// 複数のスレッドから同時にアクセスされないように制御するために使用する
         /// </summary>
         private static object lockObject = new object();
 
         /// <summary>
         /// Threading task
+        /// DUP通信を行うためのスレッドを管理する
         /// </summary>
         private Task task;
 
@@ -92,6 +97,7 @@ namespace Mocopi.Receiver.Core
         #region --Finalizers--
         /// <summary>
         /// Destructor
+        /// 
         /// </summary>
         ~MocopiUdpReceiver()
         {
@@ -102,6 +108,8 @@ namespace Mocopi.Receiver.Core
         #region --Delegates--
         /// <summary>
         /// Define a delegate for bone initialization
+        /// メソッドの型定義でSKDFを押すと呼び出されるイベントの型定義
+        /// 関数シグネチャ的なもの
         /// </summary>
         /// <param name="boneIds">Id of bones</param>
         /// <param name="parentBoneIds">Id of parent bones</param>
@@ -112,7 +120,7 @@ namespace Mocopi.Receiver.Core
         /// <param name="positionsX">X coordinate of position</param>
         /// <param name="positionsY">Y coordinate of position</param>
         /// <param name="positionsZ">Z coordinate of position</param>
-        public delegate void ReceiveSkeletonDefinitionEvent(
+        public delegate void ReceiveSkeletonDefinitionEvent( 
             int[] boneIds, int[] parentBoneIds,
             float[] rotationsX, float[] rotationsY, float[] rotationsZ, float[] rotationsW,
             float[] positionsX, float[] positionsY, float[] positionsZ
@@ -146,7 +154,7 @@ namespace Mocopi.Receiver.Core
         public delegate void ErrorOccurredEvent(System.Exception e);
         #endregion --Delegates--
 
-        #region --Properties--
+        #region --Properties-- // セッタとゲッタをまとめたもの
         /// <summary>
         /// Port 
         /// </summary>
@@ -164,9 +172,9 @@ namespace Mocopi.Receiver.Core
         /// </summary>
         public void UdpStart()
         {
-            this.UdpStop();
+            this.UdpStop(); // 既に実行中なら一度停止してリソースを解放
 
-            if (this.IsRuning)
+            if (this.IsRuning) // UdpStop()を実行しても止まらなかったら何もせずにreturn
             {
                 return;
             }
@@ -242,42 +250,46 @@ namespace Mocopi.Receiver.Core
 
         /// <summary>
         /// Convert the data received by UDP to move the avatar
+        /// 
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>
         private async void UdpTaskAsync(CancellationToken cancellationToken)
         {
-            this.udpClient = new UdpClient(this.Port);
+            this.udpClient = new UdpClient(this.Port); // 指定ポートでUDPクライアントを初期化
 
             while (!cancellationToken.IsCancellationRequested && this.udpClient != null)
             {
-                int id = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 try
                 {
                     IPEndPoint remoteEP = null;
+                    // データを受信するまでここで処理がブロックされる
                     byte[] message = this.udpClient.Receive(ref remoteEP);
 
-                    lock (lockObject)
+                    lock (lockObject) // スレッドセーフを確保
                     {
+                        // SonyMotionFormatのデータかチェック
                         if (SonyMotionFormat.IsSmfBytes(message.Length, message))
                         {
-                            // Processing of data acquired in "SonyMotionFormat"
+                            // データを処理するメソッドを呼び出す
                             this.HandleSonyMotionFormatData(message);
                         }
                     }
                 }
                 catch (SocketException e)
                 {
+                    // UdpClientが閉じられた時などに発生する例外は無視
                     Debug.Log($"[MocopiUdpReceiver] {e.Message} : {e.GetType()}");
                 }
                 catch (System.Exception e)
                 {
+                    // その他の致命的なエラー
                     Debug.LogErrorFormat($"[MocopiUdpReceiver] Udp receive failed. {e.Message} : {e.GetType()}");
                     this.UdpStop();
-                    this.OnUdpReceiveFailed?.Invoke(e);
+                    this.OnUdpReceiveFailed?.Invoke(e); // エラーイベントを発行
                     break;
                 }
 
-                await Task.Delay(1);
+                await Task.Delay(1); // CPUを過剰に消費しないよう、少し待機
             }
         }
 

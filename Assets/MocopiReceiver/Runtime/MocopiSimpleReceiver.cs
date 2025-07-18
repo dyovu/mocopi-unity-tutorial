@@ -69,11 +69,13 @@ namespace Mocopi.Receiver
         {
             this.UdpStop();
 
+            // 通信しているUDPがない場合、通信しているUDPの数とインスペクタで設定してたアバターとポートの組みの数が異なれば初期化
             if (this.UdpReceivers == null || this.UdpReceivers.Length != this.AvatarSettings.Count)
             {
                 this.InitializeUdpReceiver();
             }
 
+            // 全てのUDPを開始
             for (int i = 0; i < this.UdpReceivers.Length; i++)
             {
                 this.UdpReceivers[i]?.UdpStart();
@@ -85,6 +87,7 @@ namespace Mocopi.Receiver
         /// </summary>
         private void UdpStop()
         {
+            // もう通信しているUDPがなかったら何もしない
             if (this.UdpReceivers == null)
             {
                 return;
@@ -127,11 +130,12 @@ namespace Mocopi.Receiver
                     continue;
                 }
 
+                // 指定したポートでMocopiUdpReceiverインスタンスを初期化
                 if (this.UdpReceivers[i] == null)
                 {
                     this.UdpReceivers[i] = new MocopiUdpReceiver(this.AvatarSettings[i].Port);
                 }
-
+                // そして、+=演算子を使って、UdpReceiverのイベントにMocopiAvatarのメソッドを購読登録
                 this.UdpReceivers[i].OnReceiveSkeletonDefinition += this.AvatarSettings[i].MocopiAvatar.InitializeSkeleton;
                 this.UdpReceivers[i].OnReceiveFrameData += this.AvatarSettings[i].MocopiAvatar.UpdateSkeleton;
             }
