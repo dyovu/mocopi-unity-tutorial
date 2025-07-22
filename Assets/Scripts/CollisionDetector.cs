@@ -5,11 +5,12 @@ using UnityEngine;
 public class CollisionDetector : MonoBehaviour
 {
     // この関数は、このオブジェクト（または子オブジェクト）のColliderに
-    // 他のColliderが物理的に衝突した瞬間に自動的に呼び出されます。
+    // 他のColliderが物理的に衝突した瞬間に自動的に呼び出される
     private void OnCollisionEnter(Collision collision)
     {
         // 衝突した相手のオブジェクト情報をログに出力
         Debug.Log(collision.gameObject.name + " が衝突しました！");
+        Debug.Log("衝突したオブジェクトのタグ: " + collision.gameObject.tag);
 
         // 自分（アバター）のどの部分に当たったかを取得
         // collision.collider は、自分自身の当たったColliderを指します。
@@ -20,11 +21,17 @@ public class CollisionDetector : MonoBehaviour
         Vector3 hitPoint = collision.contacts[0].point;
         Debug.Log("衝突座標: " + hitPoint);
 
-        // 例：もし当たった部位が"Head"だったら特別な処理をする
-        if (hitPart.name == "Head")
+        // 迫ってくる障害物に当たったら
+        if (collision.gameObject.CompareTag("Obstacle"))
         {
-            Debug.LogWarning("頭に直撃！");
-            // ここにダメージ処理やエフェクト表示などのコードを書く
+            // デバッグログにゲームオーバーと表示
+            Debug.LogWarning("バーに衝突！ ゲームオーバー！");
+
+            // ゲームの時間を止めて、動きを完全に停止させる
+            Time.timeScale = 0;
+
+            // 当たったバーは念のため破壊しておく
+            Destroy(collision.gameObject);
         }
     }
 }
