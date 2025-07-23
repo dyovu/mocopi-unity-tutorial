@@ -10,7 +10,7 @@ public class ObstacleMovement : MonoBehaviour
         transform.Translate(Vector3.forward * -speed * Time.deltaTime);
 
 
-        if (transform.position.z < -10f)
+        if (transform.position.z < -5f)
         {
             // 画面外に出た障害物は削除
             Destroy(gameObject);
